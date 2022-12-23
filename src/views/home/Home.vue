@@ -40,14 +40,13 @@ import NavBar from "components/common/navbar/NavBar";
 import TabControl from "components/content/tabControl/TabControl.vue";
 import GoodsList from "components/content/goods/GoodsList.vue";
 import Scroll from "components/common/scroll/Scroll.vue";
-import BackTop from "components/content/backTop/BackTop";
 
 import HomeSwiper from "./childcomps/HomeSwiper";
 import HomeRecommendView from "./childcomps/HomeRecommendView.vue";
 import FeatureView from "./childcomps/FeatureView.vue";
 
 import { getHomeMultidata, getHomeGoods } from "network/home";
-import { debounce } from "common/utils/utils.js";
+import { itemListenerMixin, backTopMixin } from "common/mixin.js";
 
 export default {
   name: "Home",
@@ -56,11 +55,11 @@ export default {
     TabControl,
     GoodsList,
     Scroll,
-    BackTop,
     HomeSwiper,
     HomeRecommendView,
     FeatureView,
   },
+  mixins: [itemListenerMixin, backTopMixin],
   data() {
     return {
       banners: [],
@@ -71,7 +70,7 @@ export default {
         sell: { page: 0, list: [] },
       },
       currentType: "pop",
-      isShowBackTap: false,
+
       tabOffsetTop: 0,
       isTabFixed: false,
       saveY: 0,
@@ -83,7 +82,11 @@ export default {
   },
   deactivated() {
     this.saveY = this.$refs.scroll.getScrollY();
+
+    // 取消全局事件的监听
+    this.$bus.$off("itemImgLoad", this.itemImgListner);
   },
+
   created() {
     // 1 请求多个数据
     this.getHomeMultidata();
@@ -91,13 +94,6 @@ export default {
     this.getHomeGoods("pop");
     this.getHomeGoods("new");
     this.getHomeGoods("sell");
-  },
-  mounted() {
-    // 1 监听item中的图片加载完成
-    const refresh = debounce(this.$refs.scroll.refresh, 200);
-    this.$bus.$on("itemImgLoad", () => {
-      refresh();
-    });
   },
   computed: {
     showGoods() {
@@ -121,9 +117,7 @@ export default {
       this.$refs.tabControl1.currentIndex = index;
       this.$refs.tabControl2.currentIndex = index;
     },
-    backClick() {
-      this.$refs.scroll.scrollTo(0, 0, 500);
-    },
+
     contentScroll(position) {
       // 控制回到顶部图标是否显示
       this.isShowBackTap = -position.y > 1000;
